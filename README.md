@@ -1,685 +1,750 @@
-# Monitored Random Unitary Circuit Recovery Simulation
+# Monitored Random Unitary Circuits and Information Recovery
 
-## Overview
+A single-file Python simulation of **measurement-induced information recovery transitions** in a **monitored brickwork random unitary circuit**.
 
-This project is a **single-file Python simulation** of a monitored random unitary circuit on \(N\) qubits. Its purpose is to test a specific **quantum information-theoretic claim**:
+This project tests whether a logical qubit, initially localized in one qubit of an \(N\)-qubit system, can still be **optimally recovered from a radiation subsystem** after scrambling dynamics and stochastic measurements. The operational quantity of interest is the **optimal recovery fidelity** from half of the system.
 
-> A logical qubit initially encoded in a many-body quantum system may be recoverable from a subsystem called “radiation” when scrambling dominates, but becomes unrecoverable when projective measurement dominates, with a phase transition at a critical measurement rate \(\lambda_c\).
+The model is motivated by ideas from:
 
-This is studied using an **operational order parameter**:
+- **quantum information scrambling**
+- **measurement-induced phase transitions**
+- **quantum error correction**
+- **black hole information recovery / Hayden-Preskill-type intuition**
+- the broader **black hole information paradox**
 
-- the **optimal recovery fidelity** \(F_{\mathrm{opt}}\) of a logical qubit,
-- recovered only from the **radiation subsystem** consisting of half the system,
-- after the full system evolves under a **brickwork random circuit** with intermittent measurements.
-
-The script is motivated by ideas from:
-
-- **measurement-induced phase transitions**,
-- **quantum scrambling**,
-- **subsystem error correction**,
-- and conceptual analogies to the **black hole information paradox**.
-
-It does **not** simulate gravity directly. It is a controlled toy model in quantum information.
+It is **not** a gravity simulation and does **not** model horizons, Hawking radiation, or spacetime geometry directly. It is a controlled quantum information toy model.
 
 ---
 
-# What the script does
+## What this code does
 
-The script:
+The script simulates:
 
-1. **Prepares a single logical qubit**
-   in a random pure state
-   \[
-   |\psi\rangle = \alpha |0\rangle + \beta |1\rangle
-   \]
-   encoded into qubit 0 of an \(N\)-qubit register.
+- an \(N\)-qubit pure state,
+- a single logical qubit initially encoded in qubit 0,
+- a **brickwork nearest-neighbor random unitary circuit**,
+- repeated **probabilistic computational-basis measurements** after each layer,
+- and an **optimal decoder** that asks:
 
-2. **Initializes the full system**
-   as
-   \[
-   |\psi_{\text{full}}\rangle = \alpha |00\cdots 0\rangle + \beta |10\cdots 0\rangle.
-   \]
+> How well can an observer recover the original logical qubit using only the radiation subsystem consisting of the second half of the qubits?
 
-3. **Evolves the system**
-   using a **brickwork nearest-neighbor random unitary circuit**:
-   - even layers: gates on \((0,1), (2,3), \dots\)
-   - odd layers: gates on \((1,2), (3,4), \dots\)
+The key hypothesis is that the average optimal recovery fidelity behaves like an order parameter:
 
-4. **Applies projective measurements**
-   after each unitary layer:
-   - each qubit is measured independently with probability \(\lambda\),
-   - measurements occur in random order to avoid ordering bias.
+- **low measurement rate** \(\lambda < \lambda_c\): information survives scrambling and can be recovered from radiation, so \(F_{\mathrm{opt}} \to 1\)
+- **high measurement rate** \(\lambda > \lambda_c\): measurements destroy coherence and decoding becomes impossible, so \(F_{\mathrm{opt}} \to 1/2\)
 
-5. **Defines radiation**
-   as the **second half** of the qubits:
-   \[
-   R = \{N/2, \dots, N-1\}.
-   \]
+Here \(1/2\) is the fidelity of a **random guess** for a qubit.
 
-6. **Computes the optimal recovery fidelity**
-   of the logical qubit from this radiation subsystem using the **trace distance** between conditional radiation states.
-
-7. **Repeats the process**
-   for many random circuit realizations and many random logical input states.
-
-8. **Produces three plots**:
-   - fidelity vs measurement rate,
-   - finite-size scaling collapse,
-   - susceptibility-like derivative \(-dF/d\lambda\).
-
----
-
-# Scientific question being tested
-
-The script tests whether there is a **measurement-induced recoverability transition**:
-
-- For **small measurement rate** \(\lambda\):
-  scrambling spreads the logical information into nonlocal correlations,
-  so the radiation subsystem may retain enough information to reconstruct the logical qubit.
-
-- For **large measurement rate** \(\lambda\):
-  repeated measurements destroy coherence and nonlocal entanglement,
-  so the information becomes effectively unrecoverable from the radiation alone.
-
-The claim predicts:
+The script also attempts a **finite-size scaling collapse** using
 
 \[
-F_{\mathrm{opt}} \to 1 \quad \text{for } \lambda < \lambda_c
+F(\lambda, N) = f\left((\lambda - \lambda_c) N^{1/\nu}\right)
 \]
-and
-\[
-F_{\mathrm{opt}} \to \frac12 \quad \text{for } \lambda > \lambda_c
-\]
-as \(N \to \infty\).
 
-Here:
-
-- \(F_{\mathrm{opt}} = 1\) means perfect logical recovery,
-- \(F_{\mathrm{opt}} = 1/2\) means no better than random guessing.
-
-The finite-size scaling ansatz is:
+and computes a susceptibility-like diagnostic
 
 \[
-F(\lambda, N) = f\!\left((\lambda - \lambda_c) N^{1/\nu}\right).
+-dF/d\lambda
 \]
 
----
-
-# Why this is relevant
-
-This simulation is useful because it turns an abstract idea about **information retention under noisy monitoring** into a directly measurable numerical experiment.
-
-It helps answer:
-
-- When is information preserved nonlocally?
-- When is it destroyed by measurement?
-- Can recovery from a subsystem show critical behavior?
-- Is there a sharp transition between recoverable and unrecoverable phases?
-
-These are deeply related to themes in:
-
-- quantum chaos,
-- error correction,
-- Page curve–style information recovery,
-- and black hole information flow.
+to estimate the transition region.
 
 ---
 
-# Model details
+## Why this is interesting
 
-## 1. System setup
+This project explores a concrete operational question:
 
-- Number of qubits: \(N\)
-- Full Hilbert space dimension: \(2^N\)
-- Logical qubit is encoded in qubit 0
-- Other qubits start in \(|0\rangle\)
+> When does scrambling spread information into accessible subsystems, and when do measurements destroy it faster than it can be recovered?
 
-The logical state is random for each trial, which avoids bias toward a special computational basis state.
+That question is central to several modern themes:
 
----
+- **scrambling vs decoherence**
+- **error correction in many-body systems**
+- **emergent code subspaces**
+- **recoverability of information from subsystems**
+- **toy models of black hole information flow**
 
-## 2. Circuit architecture
+In black hole language, one may loosely interpret:
 
-The circuit uses a **brickwork nearest-neighbor pattern**, not global all-to-all random unitary evolution.
-
-This matters because brickwork circuits are:
-
-- more physical,
-- local,
-- and closer to standard models of scrambling dynamics.
-
-The total circuit depth is:
-
-\[
-\text{depth} = 2N
-\]
-
-which is enough for information to spread across the system at least over the available sizes.
+- the full system as a toy “black hole + environment” quantum system,
+- the radiation subsystem as “accessible outgoing degrees of freedom,”
+- random unitary dynamics as a toy model for **chaotic scrambling**,
+- measurements as an effective model of **information loss, decoherence, or environment-induced collapse**,
+- recovery fidelity as an operational measure of whether the information about an infallen qubit is still encoded in accessible radiation.
 
 ---
 
-## 3. Random two-qubit gates
+## Repository structure
 
-Each gate is generated as:
+This repository is intentionally minimal.
 
-\[
-U = e^{i \cdot \text{strength} \cdot H}
-\]
+```text
+.
+├── main.py
+├── README.md
+```
 
-where:
+Generated outputs after running:
 
-- \(H\) is a random \(4 \times 4\) Hermitian matrix,
-- normalized by Frobenius norm.
-
-This is an important design choice.
-
-### Why not QR decomposition?
-
-The script explicitly avoids using QR decomposition of a scaled random matrix because:
-
-- the scale would not meaningfully affect the output unitary,
-- so a “strength” parameter would be fake.
-
-Using matrix exponentiation ensures the **strength parameter genuinely tunes scrambling**.
+```text
+plot_fidelity_vs_lambda.png
+plot_finite_size_collapse.png
+plot_susceptibility.png
+```
 
 ---
-
-## 4. Measurement layer
-
-After each unitary layer:
-
-- each qubit is independently measured with probability \(\lambda\),
-- in the computational basis.
-
-The measurement process is projective:
-
-- outcome sampled from Born probabilities,
-- state projected and renormalized.
-
-The script includes safeguards against numerical instability:
-
-- probabilities clipped to nonnegative values,
-- renormalization only if norm exceeds \(10^{-15}\),
-- random measurement order each layer to avoid index bias.
-
----
-
-## 5. Radiation subsystem
-
-Radiation is defined as:
-
-\[
-R = \{N//2, \dots, N-1\}
-\]
-
-which is the second half of the qubits.
-
-This is always a **strict subsystem**, never the entire system.
-
-That condition is essential.
-
-### Why is this important?
-
-If the “radiation” were accidentally taken to be the whole system, then:
-
-- no information is truly being discarded,
-- the partial trace does nothing,
-- recovery becomes trivial or misleading.
-
-The script explicitly guards against this bug.
-
----
-
-## 6. Optimal recovery decoder
-
-A major strength of this script is that it uses a principled **optimal decoder**, not an ad hoc overlap in the original basis.
-
-After the circuit, the logical \(|0\rangle\) and \(|1\rangle\) sectors are highly scrambled, so direct computational-basis projection is incorrect.
-
-Instead, the decoder proceeds as follows:
-
-1. Project the full state onto qubit 0 = \(|0\rangle\) and \(|1\rangle\)
-2. Obtain conditional states \(|\psi_0\rangle\), \(|\psi_1\rangle\)
-3. Compute their probabilities \(p_0\), \(p_1\)
-4. Normalize them
-5. Reduce each to the radiation subsystem
-6. Form weighted states
-   \[
-   \sigma_0 = |\alpha|^2 p_0 \rho_R^0,\qquad
-   \sigma_1 = |\beta|^2 p_1 \rho_R^1
-   \]
-7. Compute
-   \[
-   T = \frac12 \sum |\lambda_i(\sigma_0 - \sigma_1)|
-   \]
-8. Return
-   \[
-   F_{\mathrm{opt}} = \min\left(\frac12 + T, 1\right)
-   \]
-
-This is the correct operational quantity for **optimal distinguishability-based recovery** from radiation.
-
----
-
-# Output files
-
-The script generates and saves:
-
-- `plot_fidelity_vs_lambda.png`
-- `plot_finite_size_collapse.png`
-- `plot_susceptibility.png`
-
-all at **300 DPI**, and also displays them.
-
----
-
-# Plot descriptions
-
-## Plot 1: Fidelity vs measurement rate
-
-This shows:
-
-- x-axis: measurement rate \(\lambda\)
-- y-axis: average optimal recovery fidelity
-- one curve per system size \(N\)
-
-It includes:
-
-- error bars = standard error of the mean,
-- a dashed line at \(F = 1/2\) labeled “random guess”.
-
-### What to look for
-
-- High fidelity at low \(\lambda\)
-- Drop toward \(1/2\) at large \(\lambda\)
-- Sharper crossover as \(N\) increases
-
-This is the main evidence for a phase transition.
-
----
-
-## Plot 2: Finite-size scaling collapse
-
-This tests the scaling form:
-
-\[
-F(\lambda, N) = f((\lambda - \lambda_c)N^{1/\nu})
-\]
-
-The script searches over \(\lambda_c\) and \(\nu\) to minimize mismatch across curves.
-
-### What to look for
-
-If the transition is genuine, curves for different \(N\) should collapse onto a common scaling curve when replotted against:
-
-\[
-x = (\lambda - \lambda_c)N^{1/\nu}
-\]
-
-A good collapse supports critical scaling.
-
----
-
-## Plot 3: Susceptibility / derivative
-
-The script computes:
-
-\[
-\chi(\lambda) = -\frac{dF}{d\lambda}
-\]
-
-for each system size.
-
-### What to look for
-
-- a peak near the transition,
-- peak sharpening as \(N\) grows,
-- peak height increasing with \(N\).
-
-This is standard finite-size transition phenomenology.
-
----
-
-# How to run
 
 ## Requirements
 
-Install:
+- Python 3.9+
+- `numpy`
+- `scipy`
+- `matplotlib`
+
+Install dependencies with:
 
 ```bash
 pip install numpy scipy matplotlib
 ```
 
-## Run the script
+---
+
+## Running
+
+Run the simulation with:
 
 ```bash
 python main.py
 ```
 
----
+The script will:
 
-# Default parameters
-
-The script is configured for computationally feasible full-state simulation:
-
-- system sizes: `N = [4, 6, 8, 10]`
-- lambdas: 21 points from 0 to 1
-- trials per point: 200
-- circuit depth: \(2N\)
-
-These choices are a compromise between:
-
-- physical relevance,
-- statistical averaging,
-- and runtime feasibility.
+1. simulate fidelity data over a grid of system sizes and measurement rates,
+2. print progress during Monte Carlo sampling,
+3. estimate finite-size scaling parameters \(\lambda_c\) and \(\nu\),
+4. generate and save 3 plots.
 
 ---
 
-# Performance expectations
+## Default simulation settings
 
-This is an **exact pure-state vector simulation**, so the cost grows exponentially with \(N\).
+The default script uses:
 
-### Feasible
-- \(N = 4, 6, 8, 10\)
+- system sizes:
+  ```python
+  N = [4, 6, 8, 10]
+  ```
 
-### Borderline
-- \(N = 12\)
+- measurement rates:
+  ```python
+  lambda in [0, 1] with 21 points
+  ```
 
-### Likely too slow for many trials
-- \(N \ge 14\)
+- Monte Carlo samples:
+  ```python
+  200 trials per (N, lambda)
+  ```
 
-The runtime depends on CPU speed, but the chosen defaults aim to stay within a practical range on a modern laptop.
+- circuit depth:
+  ```python
+  2*N layers
+  ```
 
----
+- radiation subsystem:
+  ```python
+  qubits N//2 through N-1
+  ```
 
-# Numerical safety features
-
-The script contains several important protections:
-
-## 1. Radiation is never the full system
-Avoids a fatal interpretation bug.
-
-## 2. Scrambling strength is real
-Uses \(U = e^{i \cdot \text{strength} \cdot H}\), not QR decomposition.
-
-## 3. Decoder is basis-independent
-Uses conditional-state trace distance, not naive basis overlap.
-
-## 4. Measurement renormalization is stabilized
-Near-zero norms are checked before division.
-
-## 5. Measurement order is randomized
-Avoids systematic coherence bias by qubit index.
-
-## 6. Fixed random seed
-Uses `np.random.default_rng(42)` for reproducibility.
+These values were chosen to remain feasible for a **full state-vector simulation**.
 
 ---
 
-# Interpretation of results
+## Model details
 
-## If the claim is supported
+## 1. Initial state
 
-You should observe something like:
+A logical qubit is drawn at random:
 
-- \(F_{\mathrm{opt}} \approx 1\) for low \(\lambda\),
-- \(F_{\mathrm{opt}} \approx 0.5\) for high \(\lambda\),
-- a sharpening crossover as \(N\) increases,
-- finite-size scaling collapse for suitable \(\lambda_c, \nu\),
-- increasing susceptibility peaks.
+\[
+|\psi\rangle = \alpha |0\rangle + \beta |1\rangle
+\]
 
-That would indicate a **recoverability transition** controlled by measurement rate.
+with Haar-random coefficients \(\alpha,\beta\).
 
-## If the claim is not clearly supported
+It is embedded into the full system as:
 
-You may instead see:
+\[
+|\psi_{\text{full}}\rangle = \alpha |00\cdots0\rangle + \beta |10\cdots0\rangle
+\]
 
-- broad crossovers without strong sharpening,
-- poor collapse,
-- no stable crossing region,
-- strong finite-size drift.
+So:
 
-This would suggest that either:
-
-- the transition is weak at these small sizes,
-- the chosen circuit depth is insufficient,
-- the chosen decoder or subsystem fraction matters,
-- or the model does not strongly realize the proposed universality at accessible \(N\).
+- qubit 0 carries the logical information,
+- all other qubits start in \(|0\rangle\).
 
 ---
 
-# Why this is interesting for the black hole information paradox
+## 2. Brickwork circuit
 
-## Short answer
+Each layer applies nearest-neighbor two-qubit unitaries in a brickwork pattern:
 
-This script does **not solve** the black hole information paradox directly.
+- even layers:
+  \[
+  (0,1), (2,3), (4,5), \dots
+  \]
 
-But it is useful because it probes a core structural question:
+- odd layers:
+  \[
+  (1,2), (3,4), (5,6), \dots
+  \]
 
-> Under what conditions can information that appears hidden in a complex quantum system become recoverable from a subsystem after scrambling and decoherence?
+Each two-qubit gate is generated as
 
-That is very close in spirit to black hole information recovery.
+\[
+U = e^{i \, s H}
+\]
 
----
+where:
 
-# Conceptual connection to black holes
+- \(s\) is the gate strength,
+- \(H\) is a random Hermitian \(4\times4\) matrix,
+- \(H\) is normalized by Frobenius norm.
 
-In the black hole information problem, one asks:
-
-- If matter carrying quantum information falls into a black hole,
-- and the black hole evolves unitarily,
-- can the information later be recovered from Hawking radiation?
-
-The modern answer in many frameworks is:
-
-- yes, in principle, if evaporation is unitary and the radiation contains the relevant correlations.
-
-This simulation mirrors some of those ingredients:
-
-## Logical qubit
-Represents a small piece of information thrown into the system.
-
-## Scrambling dynamics
-Represents the black hole rapidly mixing local information into nonlocal many-body entanglement.
-
-## Radiation subsystem
-Represents the accessible outgoing degrees of freedom, analogous to Hawking radiation.
-
-## Measurements
-Represent decoherence, monitoring, environment coupling, or information loss channels that compete with coherent scrambling.
-
-## Recovery fidelity
-Represents the operational question:
-Can an observer recover the original logical information from the radiation alone?
+This matters because it makes the **strength parameter physically meaningful**. A QR decomposition of a scaled random matrix would not have done that.
 
 ---
 
-# What the simulation can teach us conceptually
+## 3. Measurements
 
-## 1. Scrambling can help recovery
-At first glance, scrambling seems to hide information. But paradoxically, in many-body systems it can make information **more available to large subsystems**.
+After every unitary layer:
 
-This is analogous to the idea that black holes are powerful scramblers, yet the radiation eventually contains recoverable information.
+- each qubit is measured independently with probability \(\lambda\),
+- measurement is in the computational basis,
+- measured qubits are processed in **random order** to avoid systematic bias.
 
-## 2. Decoherence can suppress recoverability
-If measurements happen too often, they destroy coherent many-body encoding.
+Measurements project the state and renormalize it.
 
-This gives a toy mechanism by which information can become operationally inaccessible, even if the full system remains well-defined.
+The code includes numerical safeguards:
 
-## 3. Recovery can behave like a phase transition
-Rather than a gradual, featureless degradation, there may be a sharp transition between:
-
-- a recoverable phase,
-- and an unrecoverable phase.
-
-That sharpness is conceptually important because it suggests that information accessibility can be a collective many-body property.
-
-## 4. The relevant order parameter is operational
-The script does not ask abstractly whether information “exists somewhere”.
-It asks whether an observer with access only to the radiation can **recover the logical qubit**.
-
-That is much closer to what matters in the black hole information paradox.
+- clips probabilities to nonnegative values,
+- checks for near-zero norms before normalization.
 
 ---
 
-# What this model does NOT capture about real black holes
+## 4. Radiation subsystem
 
-This is very important.
+The radiation subsystem is defined as the **second half** of the qubits:
 
-The model is **not** a literal black hole simulation.
+\[
+R = \{N/2, N/2+1, \dots, N-1\}
+\]
 
-It lacks:
+This is always a **strict subset** of the full system.
+
+That restriction is crucial. If one incorrectly used the whole system as the “radiation” subsystem, the reduced state would just be the full pure state, which would trivialize the decoding problem.
+
+---
+
+## 5. Optimal decoder
+
+The script does **not** use an ad hoc projection decoder.
+
+Instead, it uses the correct operational quantity for distinguishing the encoded logical alternatives after scrambling.
+
+### Decoder recipe
+
+Given the final pure state:
+
+1. Project onto logical qubit 0 = \(|0\rangle\) and \(|1\rangle\), obtaining conditional states \(|\psi_0\rangle\), \(|\psi_1\rangle\).
+2. Compute their weights:
+   \[
+   p_0 = \|\psi_0\|^2, \quad p_1 = \|\psi_1\|^2
+   \]
+3. Normalize them.
+4. Compute reduced density matrices on radiation:
+   \[
+   \rho_R^0,\ \rho_R^1
+   \]
+5. Form:
+   \[
+   \sigma_0 = |\alpha|^2 p_0 \rho_R^0,\quad
+   \sigma_1 = |\beta|^2 p_1 \rho_R^1
+   \]
+6. Compute trace distance:
+   \[
+   T = \frac12 \sum_i |\lambda_i(\sigma_0 - \sigma_1)|
+   \]
+7. Define:
+   \[
+   F_{\mathrm{opt}} = \min(0.5 + T,\ 1.0)
+   \]
+
+If either branch has nearly zero weight, the code returns:
+
+\[
+F_{\mathrm{opt}} = 0.5
+\]
+
+which corresponds to no recoverable information.
+
+---
+
+## Outputs
+
+## Plot 1: Fidelity vs measurement rate
+
+Shows:
+
+- \(F_{\mathrm{opt}}\) vs \(\lambda\),
+- one curve per system size,
+- error bars = standard error of the mean,
+- dashed line at \(F=0.5\) labeled “random guess”.
+
+Expected qualitative signature:
+
+- lower \(\lambda\): higher fidelity
+- higher \(\lambda\): fidelity approaches 0.5
+- larger \(N\): sharper crossover if a transition is present
+
+---
+
+## Plot 2: Finite-size scaling collapse
+
+Attempts to fit the scaling form
+
+\[
+F(\lambda, N)=f((\lambda-\lambda_c)N^{1/\nu})
+\]
+
+by scanning over candidate values of:
+
+- critical measurement rate \(\lambda_c\)
+- exponent \(\nu\)
+
+A good collapse is suggestive, though not definitive, evidence of critical scaling.
+
+---
+
+## Plot 3: Susceptibility / derivative
+
+Plots:
+
+\[
+-dF/d\lambda
+\]
+
+The peak location gives a finite-size estimate of the transition point. If the system exhibits a phase transition, one expects:
+
+- the peak to sharpen with increasing \(N\),
+- the peak height to grow,
+- the peak location to drift toward \(\lambda_c\).
+
+---
+
+## Scientific interpretation
+
+## What a positive result would mean
+
+If the simulation shows:
+
+- \(F_{\mathrm{opt}}\approx 1\) for small \(\lambda\),
+- \(F_{\mathrm{opt}}\approx 0.5\) for large \(\lambda\),
+- size-dependent sharpening,
+- and reasonable finite-size collapse,
+
+then the model supports the claim that there is a **measurement-induced transition in recoverability**.
+
+Operationally, this means there is a threshold between two regimes:
+
+### 1. Scrambling-dominated regime
+Unitary dynamics spread the logical information nonlocally into the system, allowing it to be reconstructed from a subsystem.
+
+### 2. Measurement-dominated regime
+Measurements destroy the coherence needed for that information to remain encoded in accessible correlations.
+
+This is a concrete example of a transition not in ordinary thermodynamic order, but in **quantum information recoverability**.
+
+---
+
+## Connection to the black hole information paradox
+
+## Short version
+
+This code does **not solve the black hole information paradox**.
+
+But it is useful because it probes a question that lies close to its modern quantum-information reformulations:
+
+> Under what conditions does information that was initially localized become recoverable from an outgoing subsystem after chaotic evolution?
+
+That is conceptually related to black hole evaporation and information recovery.
+
+---
+
+## Why black hole people care about models like this
+
+Modern understanding of the black hole information problem increasingly uses tools from:
+
+- quantum information theory,
+- entanglement structure,
+- random circuit models,
+- quantum error correction,
+- subsystem recovery,
+- replica/statistical mechanics mappings,
+- Page-curve reasoning,
+- Hayden-Preskill decoding ideas.
+
+In those frameworks, black holes are not treated merely as thermodynamic absorbers, but as **scramblers** that may encode information in highly nonlocal ways.
+
+This code studies exactly the tension between:
+
+- **scrambling**, which hides information globally but can make it recoverable from sufficiently large subsystems,
+- and **measurement/decoherence**, which can erase the very correlations needed for recovery.
+
+That tension is highly relevant to black hole information discussions because any real recovery mechanism must survive interactions with environments, coarse graining, and partial access.
+
+---
+
+## More concrete conceptual analogies
+
+This model loosely mirrors the following black-hole-inspired narrative:
+
+### Logical qubit
+Represents a small quantum message thrown into a chaotic system.
+
+### Brickwork random circuit
+Represents chaotic scrambling dynamics.
+
+### Radiation subsystem
+Represents the accessible outgoing degrees of freedom available to an external observer.
+
+### Optimal decoder
+Represents the best physically allowed recovery protocol from what is accessible.
+
+### Measurements
+Represent decohering processes, leakage to inaccessible sectors, or effective collapse channels that compete with coherent scrambling.
+
+This does not reproduce actual semiclassical evaporation, but it tests whether **recoverability itself** can undergo a sharp transition.
+
+---
+
+## Possible implications for black hole information research
+
+## 1. Recoverability can be an operational order parameter
+
+One of the most useful aspects of this model is that it uses a directly operational quantity:
+
+\[
+F_{\mathrm{opt}}
+\]
+
+This is better than qualitative claims like “information is somewhere in the wavefunction.” It asks whether information is **actually recoverable from a subsystem**.
+
+For black hole discussions, this is valuable because the paradox is not just about whether global evolution is unitary in principle, but whether information is encoded in an accessible way in Hawking radiation.
+
+---
+
+## 2. Scrambling alone is not enough
+
+A system may scramble very efficiently, but if sufficiently strong measurements or decoherence continually collapse important correlations, subsystem recovery can fail.
+
+This is relevant because many naive statements about black holes say:
+
+> “The information is scrambled, therefore it is preserved.”
+
+But in operational settings, preservation is not the same as **recoverability from accessible radiation**.
+
+This model highlights that subtle distinction.
+
+---
+
+## 3. Phase-transition language may help organize the problem
+
+Measurement-induced transitions have taught the field that quantum information properties can exhibit sharp, universal changes as competing processes are tuned.
+
+If analogous mechanisms matter in gravitational contexts, then information recovery may be better framed not as a binary yes/no issue, but as a competition between:
+
+- scrambling,
+- leakage,
+- measurement,
+- coarse graining,
+- observer access,
+- and subsystem size.
+
+That perspective could be useful even if the exact circuit model is not fundamental.
+
+---
+
+## 4. Supports quantum error correction intuition
+
+The low-measurement regime resembles a dynamically generated code:
+
+- logical information is hidden nonlocally,
+- local disturbances do not fully erase it,
+- a sufficiently large subsystem can decode it.
+
+That is very much in the spirit of the view that black hole interiors and bulk reconstruction may be understood through **quantum error-correcting structure**.
+
+---
+
+## 5. Helps test robustness of “Page-curve-like” intuition
+
+The modern resolution of the black hole information paradox often involves entanglement wedge ideas, islands, and Page-curve reasoning.
+
+This code does not model those directly. However, it does study whether information becomes accessible in a subsystem as a function of system size and decohering effects. That is conceptually adjacent to the same family of questions:
+
+- when does radiation contain the information?
+- how robust is that statement to noise and monitoring?
+- what destroys decoding?
+
+---
+
+## What this model cannot tell us
+
+It is important not to overclaim.
+
+This project does **not** include:
 
 - gravity,
 - curved spacetime,
-- event horizons,
 - Hawking pair creation,
-- energy conservation constraints of evaporating black holes,
-- semiclassical geometry,
-- backreaction,
+- energy conservation constraints of evaporation,
+- horizon dynamics,
+- semiclassical backreaction,
+- wormholes,
+- islands,
+- replica wormhole physics,
 - gauge constraints,
-- holographic duality,
-- wormholes / islands / replica calculations.
+- locality in spacetime geometry,
+- AdS/CFT correspondence.
 
-So it does not “derive” Page curves from gravity or solve the paradox in the strict sense.
+So it cannot by itself establish any definitive claim about real astrophysical or semiclassical black holes.
 
----
-
-# How it may still be useful
-
-Despite its simplicity, it can be useful in several ways.
-
-## 1. Toy model for recoverability
-It gives a clean testbed for how information becomes encoded in subsystems under scrambling.
-
-## 2. Operational probe of subsystem reconstruction
-This is highly relevant to ideas in:
-- quantum error correction,
-- entanglement wedge reconstruction,
-- Hayden–Preskill decoding,
-- and radiation recovery protocols.
-
-## 3. Study of decoherence vs unitary encoding
-Real black holes likely involve coarse-graining, environment-like effects, and observer restrictions. This model helps clarify how those effects compete with information-preserving unitary evolution.
-
-## 4. Benchmark for decoder-based diagnostics
-Much of the literature uses entanglement entropy or mutual information. This script instead uses **recoverability fidelity**, which is more operational and potentially more physically meaningful.
-
-## 5. Educational bridge
-It helps connect:
-- measurement-induced phase transitions,
-- black hole decoding,
-- and quantum error correction
-in a way that is numerically concrete.
+It is a **quantum information toy model**.
 
 ---
 
-# Possible implications if strong results are found
+## Best way to describe its relevance
 
-If the simulation robustly shows a transition where recovery from radiation goes from nearly perfect to random-guess limited, it suggests:
+A fair statement is:
 
-## A. Recoverability may be a genuine phase of dynamics
-Information retrieval from radiation could be controlled by a many-body phase structure, not just by smooth perturbative degradation.
+> This simulation does not solve the black hole information paradox, but it provides a clean operational laboratory for studying when scrambled quantum information remains recoverable from accessible subsystems in the presence of monitoring or decoherence. That makes it useful as a toy model for aspects of black-hole-inspired information recovery.
 
-## B. Scrambling alone is not enough
-Information can be hidden or destroyed operationally if decoherence/measurement is too strong.
-
-## C. There may be a threshold phenomenon
-This resonates with ideas that black hole information recovery may depend on whether sufficient coherent correlations survive in the outgoing radiation.
-
-## D. Recovery diagnostics may complement entropy diagnostics
-Instead of just asking whether entropy follows a Page-like curve, one can ask whether **actual decoding is possible** from a subsystem.
-
-That could be especially useful in toy models of black hole evaporation and open-system dynamics.
+That is the right level of ambition.
 
 ---
 
-# Limits of the implications
+## Known limitations
 
-The script may suggest useful principles, but it cannot by itself establish statements like:
+## 1. Small system sizes
 
-- “black holes definitely preserve information”
-- “islands are correct”
-- “firewalls do or do not exist”
-- “the paradox is solved”
+This is a full state-vector simulation, so the Hilbert space grows as:
 
-Those require much more structure from quantum gravity.
+\[
+2^N
+\]
 
-What the script can do is provide evidence for a narrower statement:
+Practical default sizes are:
 
-> In a scrambled monitored quantum system, information recoverability from a subsystem can undergo a sharp transition controlled by the competition between coherent dynamics and measurement-induced decoherence.
+- 4
+- 6
+- 8
+- 10
 
-That is relevant to the paradox, but not equivalent to solving it.
+Maybe 12 with patience.
 
----
-
-# Who might find this useful
-
-This script is useful for:
-
-- students learning monitored circuits,
-- researchers exploring measurement-induced transitions,
-- people interested in black hole information toy models,
-- quantum information theorists studying subsystem recovery,
-- numerical experimenters testing finite-size scaling ideas.
+This is enough to see trends, but not enough for high-precision critical exponent extraction.
 
 ---
 
-# Suggestions for extensions
+## 2. Finite-size scaling is only indicative
 
-If you want to make the project more powerful, here are natural next steps.
+The code performs a simple grid search for \(\lambda_c\) and \(\nu\). This is useful for visualization, but should not be mistaken for a precision critical scaling analysis.
 
-## 1. Increase system size with tensor-network methods
-State-vector simulation limits \(N\). MPS or quantum trajectory tensor methods could push much larger systems.
+For publishable exponent estimates, one would want:
 
-## 2. Compare to entanglement entropy transitions
-Compute radiation entropy, mutual information, or tripartite information alongside recovery fidelity.
-
-## 3. Add ancilla-reference qubit
-Encode a Bell pair between a reference and the logical qubit, then study entanglement fidelity or coherent information.
-
-## 4. Use different subsystem fractions
-Instead of always using half the system, vary radiation size and study decoding thresholds.
-
-## 5. Explore different measurement bases
-The computational basis is simplest, but other monitored dynamics may show different universality.
-
-## 6. Study trajectory-resolved statistics
-Not only mean fidelity, but full distributions across trajectories.
-
-## 7. Add explicit “evaporation” dynamics
-One could remove qubits from the black-hole subsystem and move them to radiation over time, making the analogy to Hawking emission closer.
-
-## 8. Compare to Hayden–Preskill style protocols
-Inject information after partial scrambling and test how quickly it becomes decodable from radiation.
+- larger systems,
+- more samples,
+- better collapse objective functions,
+- possibly crossing analysis,
+- bootstrap uncertainties,
+- and comparison to known monitored-circuit universality classes.
 
 ---
 
-# Summary
+## 3. Measurements are projective and basis-fixed
 
-This script is a numerical toy model of **information recovery under scrambling and measurement**.
+This model uses computational-basis projective measurements. Other monitoring schemes may produce different behavior.
 
-It studies whether a logical qubit encoded in a many-body quantum system can be recovered from a radiation subsystem, and whether this recoverability shows a **phase transition** as the measurement rate is increased.
+Possible variations include:
 
-Its main strengths are:
+- weak measurements
+- random measurement bases
+- continuously monitored dynamics
+- ancilla-assisted measurements
+- erasure channels instead of projections
 
-- local brickwork circuit dynamics,
-- physically meaningful scrambling-strength control,
-- numerically careful projective measurement,
-- strict subsystem radiation definition,
-- and an operationally correct **optimal decoder** based on trace distance.
+---
 
-## In relation to the black hole information paradox
+## 4. One-dimensional nearest-neighbor geometry
 
-It does **not** solve the paradox directly, because it contains no gravity.
+The circuit is 1D and local. Black-hole-inspired scrambling is often modeled by all-to-all or fast-scrambling circuits.
 
-But it is highly useful as a **conceptual and computational laboratory** for testing ideas central to the paradox:
+This 1D brickwork choice is deliberate because it is physically structured and computationally manageable, but it is not a fast scrambler in the black-hole sense.
 
-- scrambling,
-- subsystem information recovery,
-- decoherence vs unitary evolution,
-- and the emergence or loss of recoverable information in radiation.
+---
 
-So the most honest conclusion is:
+## 5. Radiation is chosen geometrically, not dynamically emitted
 
-> This script is not a black hole model in the gravitational sense, but it is a meaningful quantum-information toy model for one of the paradox’s central operational questions: when and how information becomes recoverable from radiation-like subsystems.
+The “radiation subsystem” here is just the second half of the chain. It is not dynamically emitted radiation.
+
+A more black-hole-like model might involve:
+
+- explicit emission of ancilla qubits,
+- moving qubits into an external register,
+- or coupling a central system to outgoing modes.
+
+---
+
+## Potential extensions
+
+This repository is a good starting point for many follow-up projects.
+
+## Physics extensions
+
+- add **ancilla radiation qubits** that are emitted over time
+- study **Page-time-like decoding** rather than a fixed half-system partition
+- compare **local 1D circuits** with **all-to-all fast scramblers**
+- replace projective measurements with **dephasing**, **erasure**, or **amplitude damping**
+- vary circuit depth and gate strength
+- compare to **entanglement entropy** and **mutual information**
+- study **tripartite information** or **decoupling diagnostics**
+- test different subsystem fractions besides \(N/2\)
+- analyze disorder averaging more systematically
+
+## Numerical extensions
+
+- parallelize trials across CPU cores
+- cache gate ensembles
+- use JIT tools or tensor-network methods
+- support command-line flags for:
+  - system sizes
+  - number of lambda points
+  - trial count
+  - gate strength
+  - random seed
+
+## Decoder extensions
+
+- compare optimal trace-distance decoding to:
+  - pretty good measurement
+  - learned decoders
+  - tomography-based decoders
+  - channel reconstruction methods
+
+---
+
+## Reproducibility
+
+The script uses:
+
+```python
+np.random.default_rng(42)
+```
+
+for reproducibility.
+
+Because the simulation is stochastic, exact numerical values depend on:
+
+- system size,
+- lambda grid,
+- number of trials,
+- gate strength,
+- and random seed.
+
+---
+
+## Expected qualitative behavior
+
+If the claim is supported, you should typically see:
+
+- high fidelity at low measurement rates,
+- a crossover region at intermediate \(\lambda\),
+- fidelity trending toward \(0.5\) at high measurement rates,
+- larger systems showing a steeper drop,
+- susceptibility peaks sharpening with \(N\),
+- a nontrivial approximate data collapse.
+
+If the curves do not show this, possible reasons include:
+
+- too few trials,
+- gate strength not strong enough,
+- system sizes too small,
+- finite-size effects dominating,
+- or the chosen model not exhibiting a clean transition in this observable.
+
+---
+
+## Example interpretation of outcomes
+
+### If \(F_{\mathrm{opt}}\) stays high for all \(\lambda\)
+Then measurements are not strong enough, the chosen circuit depth is too short, or the observable is too forgiving.
+
+### If \(F_{\mathrm{opt}}\) quickly drops to 0.5 for all \(\lambda > 0\)
+Then measurements dominate too strongly, or the system never forms a robust scrambled code.
+
+### If curves cross and sharpen with \(N\)
+That is the most interesting regime and consistent with a genuine finite-size precursor of a transition.
+
+---
+
+## Suggested citation language
+
+If you use this repository in a report, a fair summary is:
+
+> We numerically studied a monitored brickwork random unitary circuit in which a logical qubit is initially localized and later decoded from a half-system radiation subsystem using an optimal trace-distance decoder. The average recovery fidelity serves as an operational order parameter for the competition between scrambling and measurement, and exhibits finite-size behavior consistent with a measurement-induced transition.
+
+---
+
+## Disclaimer
+
+This repository is for research exploration, pedagogy, and toy-model experimentation.
+
+It should **not** be described as:
+
+- a proof about real black holes,
+- a direct simulation of Hawking radiation,
+- or a resolution of the black hole information paradox.
+
+It **is** useful as:
+
+- a recoverability experiment,
+- a monitored quantum dynamics toy model,
+- and a bridge between quantum information language and black-hole-inspired questions.
+
+---
+
+## Bottom line
+
+This project is useful because it asks a sharp, operational question:
+
+> Can information that has been scrambled through chaotic dynamics still be decoded from an accessible subsystem when measurements continuously compete with coherence?
+
+That question sits very close to the conceptual heart of modern information-theoretic approaches to the black hole information paradox.
+
+So while this code does not solve the paradox, it can help illuminate:
+
+- when subsystem recovery works,
+- when it fails,
+- how decoherence competes with scrambling,
+- and why quantum error correction and recoverability are so central to the black-hole information story.
+
+---
+
+## License suggestion
+
+If you want to add a license, MIT is a simple default:
+
+```text
+MIT License
+```
