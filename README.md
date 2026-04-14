@@ -1,4 +1,4 @@
-# README: Monitored Random Unitary Circuit Recovery Simulation
+# Monitored Random Unitary Circuit Recovery Simulation
 
 ## Overview
 
